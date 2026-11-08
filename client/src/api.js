@@ -6,18 +6,28 @@ async function request(path, options = {}) {
   if (res.status === 204) return null
   const body = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(body.errors?.join(' ') || body.error || `Erreur ${res.status}`)
+    const err = new Error(body.errors?.join(' ') || body.error || `Erreur ${res.status}`)
+    err.status = res.status
+    throw err
   }
   return body
 }
 
+const qs = (params) => {
+  const s = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString()
+  return s ? `?${s}` : ''
+}
+const json = (method, data) => ({ method, body: JSON.stringify(data) })
+
 export const api = {
-  listItems: (params = {}) => {
-    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString()
-    return request(`/items${qs ? `?${qs}` : ''}`)
-  },
   stats: () => request('/stats'),
-  createItem: (data) => request('/items', { method: 'POST', body: JSON.stringify(data) }),
-  updateItem: (id, data) => request(`/items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  listCollections: () => request('/collections'),
+  getCollection: (id) => request(`/collections/${id}`),
+  createCollection: (data) => request('/collections', json('POST', data)),
+  updateCollection: (id, data) => request(`/collections/${id}`, json('PUT', data)),
+  deleteCollection: (id) => request(`/collections/${id}`, { method: 'DELETE' }),
+  listItems: (params = {}) => request(`/items${qs(params)}`),
+  createItem: (data) => request('/items', json('POST', data)),
+  updateItem: (id, data) => request(`/items/${id}`, json('PUT', data)),
   deleteItem: (id) => request(`/items/${id}`, { method: 'DELETE' }),
 }

@@ -6,10 +6,11 @@ Kapsy sert à gérer ses collections de pièces : PEZ, Pop, Mighty Muggs, et tou
 
 ## Fonctionnalités
 
-- Ajouter, modifier et supprimer des objets : nom, catégorie, série/licence, numéro, état, prix d'achat, quantité, image (URL) et notes
-- Marquer un objet comme possédé ou souhaité, pour tenir une liste de souhaits
-- Filtrer par catégorie et par statut, et rechercher par nom, série, numéro ou notes
-- Voir des statistiques : nombre d'objets, valeur d'achat totale, répartition par catégorie
+- **Collections** créées librement, avec une couleur de repère et un total visé facultatif ; la progression ne s'affiche que si ce total est connu
+- **Pièces** : nom, collection, série/licence, numéro ou référence, année, état, prix d'achat, quantité (doublons), image (URL), notes
+- **Souhaits** : chaque pièce est possédée ou souhaitée ; « Je l'ai ! » la fait passer dans la collection
+- **Écrans** : accueil (résumé, collections, ajouts récents), fiche collection (compteurs, recherche, filtre, tri), souhaits
+- Navigation en haut sur ordinateur, barre du bas sur mobile
 
 ## Identité visuelle
 
@@ -45,10 +46,20 @@ Le serveur Express sert alors l'API et le frontend compilé sur le même port.
 
 | Méthode | Route | Description |
 |---|---|---|
-| GET | `/api/items?category=&status=&q=` | Liste des objets (filtres optionnels) |
-| POST | `/api/items` | Créer un objet |
-| PUT | `/api/items/:id` | Modifier un objet (partiel) |
-| DELETE | `/api/items/:id` | Supprimer un objet |
-| GET | `/api/stats` | Statistiques de la collection |
+| GET | `/api/collections` | Collections avec compteurs (possédées, souhaits, doublons) |
+| POST | `/api/collections` | Créer une collection (`name`, `color`, `target`, `description`) |
+| GET / PUT / DELETE | `/api/collections/:id` | Lire, modifier, supprimer (supprime aussi ses pièces) |
+| GET | `/api/items?collectionId=&status=&q=&sort=&limit=` | Liste des pièces (`sort` : `recent`, `name`, `number`) |
+| POST | `/api/items` | Créer une pièce (`collectionId` obligatoire) |
+| GET / PUT / DELETE | `/api/items/:id` | Lire, modifier (partiel), supprimer |
+| GET | `/api/stats` | Résumé global |
 
-Catégories : `pez`, `pop`, `mighty-mug`, `autre`. Statuts : `possede`, `recherche`.
+Statuts : `possede`, `recherche`. Couleurs : `teal`, `coral`, `mustard`.
+
+Les anciennes données (catégories fixes) sont migrées automatiquement en collections au démarrage.
+
+## Tests
+
+```bash
+npm test
+```

@@ -1,25 +1,24 @@
-import { useEffect, useRef, useState } from 'react'
-import { CircleAlert, Trash2, X } from 'lucide-react'
-import { CATEGORY_LABELS, CONDITION_LABELS, STATUS_LABELS } from '../labels'
+import { useState } from 'react'
+import { Trash2 } from 'lucide-react'
+import Modal from './Modal'
+import FormError from './FormError'
+import { CONDITION_LABELS, STATUS_LABELS } from '../labels'
 
 const EMPTY = {
-  name: '', category: 'pez', status: 'possede', series: '', number: '',
+  name: '', collectionId: '', status: 'possede', series: '', number: '', year: '',
   condition: '', price: '', quantity: 1, imageUrl: '', notes: '',
 }
+const FIELDS = Object.keys(EMPTY)
 
-export default function ItemForm({ item, defaultCategory, onSave, onDelete, onClose }) {
-  const [form, setForm] = useState(() =>
-    item ? { ...EMPTY, ...item, price: item.price ?? '', condition: item.condition ?? '' }
-         : { ...EMPTY, category: defaultCategory || 'pez' },
-  )
+export default function ItemForm({ item, collections, defaultCollectionId, onSave, onDelete, onClose }) {
+  const [form, setForm] = useState(() => {
+    if (item) {
+      return Object.fromEntries(FIELDS.map((k) => [k, item[k] ?? EMPTY[k]]))
+    }
+    return { ...EMPTY, collectionId: defaultCollectionId || collections[0]?.id || '' }
+  })
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
-  const dialogRef = useRef(null)
-
-  useEffect(() => {
-    dialogRef.current?.showModal()
-  }, [])
-
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
   async function handleSubmit(e) {
@@ -27,8 +26,7 @@ export default function ItemForm({ item, defaultCategory, onSave, onDelete, onCl
     setSaving(true)
     setError(null)
     try {
-      const { id: _id, createdAt: _c, updatedAt: _u, ...data } = form
-      await onSave({ ...data, quantity: Number(data.quantity) || 1 })
+      await onSave({ ...form, quantity: Number(form.quantity) || 1 })
     } catch (err) {
       setError(`Impossible d’enregistrer cette pièce. ${err.message}`)
       setSaving(false)
@@ -45,80 +43,73 @@ export default function ItemForm({ item, defaultCategory, onSave, onDelete, onCl
   }
 
   return (
-    <dialog ref={dialogRef} className="modal" onClose={onClose}>
-      <form onSubmit={handleSubmit}>
-        <header className="modal-header">
-          <h2>{item ? 'Modifier la pièce' : 'Ajouter une pièce'}</h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Fermer"><X size={20} aria-hidden="true" /></button>
-        </header>
-
-        <div className="form-grid">
-          <label className="span-2">
-            Nom *
-            <input value={form.name} onChange={set('name')} required autoFocus placeholder="ex. Robot rouge" />
-          </label>
-          <label>
-            Catégorie
-            <select value={form.category} onChange={set('category')}>
-              {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </label>
-          <label>
-            Statut
-            <select value={form.status} onChange={set('status')}>
-              {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </label>
-          <label>
-            Série / licence
-            <input value={form.series} onChange={set('series')} placeholder="ex. Série Espace" />
-          </label>
-          <label>
-            Numéro
-            <input value={form.number} onChange={set('number')} placeholder="ex. 01" />
-          </label>
-          <label>
-            État
-            <select value={form.condition} onChange={set('condition')}>
-              <option value="">—</option>
-              {Object.entries(CONDITION_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </label>
-          <label>
-            Prix d’achat (€)
-            <input type="number" min="0" step="0.01" value={form.price} onChange={set('price')} />
-          </label>
-          <label>
-            Quantité
-            <input type="number" min="1" step="1" value={form.quantity} onChange={set('quantity')} />
-          </label>
-          <label>
-            Image (URL)
-            <input type="url" value={form.imageUrl} onChange={set('imageUrl')} placeholder="https://…" />
-          </label>
-          <label className="span-2">
-            Notes
-            <textarea rows="3" value={form.notes} onChange={set('notes')} />
-          </label>
-        </div>
-
-        {error && (
-          <p className="form-error" role="alert"><CircleAlert size={18} aria-hidden="true" /> {error}</p>
-        )}
-
-        <footer className="modal-footer">
-          {item && (
-            <button type="button" className="btn btn-danger" onClick={handleDelete}>
-              <Trash2 size={16} aria-hidden="true" /> Supprimer
-            </button>
-          )}
-          <span className="spacer" />
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Annuler</button>
-          <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
+    <Modal title={item ? 'Modifier la pièce' : 'Ajouter une pièce'} onClose={onClose} onSubmit={handleSubmit}>
+      <div className="form-grid">
+        <label className="span-2">
+          Nom *
+          <input value={form.name} onChange={set('name')} required autoFocus placeholder="ex. Robot rouge" />
+        </label>
+        <label>
+          Collection *
+          <select value={form.collectionId} onChange={set('collectionId')} required>
+            {collections.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </label>
+        <label>
+          Statut
+          <select value={form.status} onChange={set('status')}>
+            {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </label>
+        <label>
+          Série / licence
+          <input value={form.series} onChange={set('series')} placeholder="ex. Série Espace" />
+        </label>
+        <label>
+          Numéro / référence
+          <input value={form.number} onChange={set('number')} placeholder="ex. 01" />
+        </label>
+        <label>
+          Année
+          <input value={form.year} onChange={set('year')} inputMode="numeric" maxLength={4} placeholder="ex. 1998" />
+        </label>
+        <label>
+          État
+          <select value={form.condition} onChange={set('condition')}>
+            <option value="">Non précisé</option>
+            {Object.entries(CONDITION_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </label>
+        <label>
+          Prix d’achat (€)
+          <input type="number" min="0" step="0.01" inputMode="decimal" value={form.price} onChange={set('price')} />
+        </label>
+        <label>
+          Quantité
+          <input type="number" min="1" step="1" inputMode="numeric" value={form.quantity} onChange={set('quantity')} />
+        </label>
+        <label className="span-2">
+          Image (URL)
+          <input type="url" value={form.imageUrl} onChange={set('imageUrl')} placeholder="https://…" />
+        </label>
+        <label className="span-2">
+          Notes
+          <textarea rows="3" value={form.notes} onChange={set('notes')} />
+        </label>
+      </div>
+      <FormError>{error}</FormError>
+      <footer className="modal-footer">
+        {item && (
+          <button type="button" className="btn btn-danger" onClick={handleDelete}>
+            <Trash2 size={16} aria-hidden="true" /> Supprimer
           </button>
-        </footer>
-      </form>
-    </dialog>
+        )}
+        <span className="spacer" />
+        <button type="button" className="btn btn-secondary" onClick={onClose}>Annuler</button>
+        <button type="submit" className="btn btn-primary" disabled={saving}>
+          {saving ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
+      </footer>
+    </Modal>
   )
 }

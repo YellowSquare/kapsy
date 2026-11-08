@@ -1,15 +1,15 @@
-import { Camera, Heart, Check } from 'lucide-react'
-import { CATEGORY_LABELS, CONDITION_LABELS, formatPrice } from '../labels'
+import { Camera, Check, Heart } from 'lucide-react'
+import { CONDITION_LABELS, formatPrice } from '../labels'
 import StatusBadge from './StatusBadge'
 
-export default function ItemCard({ item, onEdit, onToggleStatus }) {
+export default function ItemCard({ item, collection, onEdit, onToggleStatus }) {
   const wanted = item.status === 'recherche'
-  const meta = [item.series, item.number && `n° ${item.number}`].filter(Boolean).join(' · ')
+  const meta = [item.series, item.number && `n° ${item.number}`, item.year].filter(Boolean).join(' · ')
   const meta2 = [item.condition && CONDITION_LABELS[item.condition], item.price != null && formatPrice(item.price)]
     .filter(Boolean).join(' · ')
 
   return (
-    <article className={`card card-${item.category}`}>
+    <article className="card">
       <button className="card-body" onClick={() => onEdit(item)}>
         <div className="card-image">
           {item.imageUrl ? (
@@ -20,12 +20,14 @@ export default function ItemCard({ item, onEdit, onToggleStatus }) {
           <span className="card-badges">
             <StatusBadge status={item.status} />
             {item.quantity > 1 && (
-              <span className="badge badge-qty" title="En double">×{item.quantity}</span>
+              <span className="badge badge-qty">
+                ×{item.quantity}<span className="sr-only"> (en double)</span>
+              </span>
             )}
           </span>
         </div>
         <div className="card-text">
-          <span className={`chip chip-${item.category}`}>{CATEGORY_LABELS[item.category]}</span>
+          {collection && <span className={`chip col-${collection.color}`}>{collection.name}</span>}
           <h3>{item.name}</h3>
           {meta && <p className="card-meta">{meta}</p>}
           {meta2 && <p className="card-meta">{meta2}</p>}
