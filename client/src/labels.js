@@ -1,13 +1,13 @@
 export const CATEGORY_LABELS = {
   pez: 'PEZ',
   pop: 'Pop',
-  'mighty-mug': 'Mighty Mugs',
+  'mighty-mug': 'Mighty Muggs',
   autre: 'Autres',
 }
 
 export const STATUS_LABELS = {
-  possede: 'Dans ma collection',
-  recherche: 'Recherché',
+  possede: 'Possédé',
+  recherche: 'Souhaité',
 }
 
 export const CONDITION_LABELS = {
@@ -20,3 +20,5 @@ export const CONDITION_LABELS = {
 
 export const formatPrice = (n) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n ?? 0)
+
+export const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`

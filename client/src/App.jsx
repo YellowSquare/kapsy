@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Plus, Search } from 'lucide-react'
 import { api } from './api'
 import { CATEGORY_LABELS } from './labels'
 import Stats from './components/Stats'
 import ItemCard from './components/ItemCard'
 import ItemForm from './components/ItemForm'
+import Toast from './components/Toast'
 
 const TABS = [['', 'Tout'], ...Object.entries(CATEGORY_LABELS)]
 
@@ -13,9 +15,11 @@ export default function App() {
   const [category, setCategory] = useState('')
   const [status, setStatus] = useState('')
   const [q, setQ] = useState('')
-  const [editing, setEditing] = useState(null) // null = fermé, {} = nouvel objet, item = édition
+  const [editing, setEditing] = useState(null) // null = fermé, {} = nouvelle pièce, item = édition
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
+  const clearToast = useCallback(() => setToast(null), [])
 
   const refresh = useCallback(async () => {
     try {
@@ -23,8 +27,8 @@ export default function App() {
       setItems(list)
       setStats(s)
       setError(null)
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      setError('Impossible de charger ta collection. Réessaie dans un instant.')
     } finally {
       setLoading(false)
     }
@@ -36,20 +40,25 @@ export default function App() {
   }, [refresh, q])
 
   async function handleSave(data) {
-    if (editing?.id) await api.updateItem(editing.id, data)
-    else await api.createItem(data)
+    const isNew = !editing?.id
+    if (isNew) await api.createItem(data)
+    else await api.updateItem(editing.id, data)
     setEditing(null)
+    setToast(isNew ? 'C’est ajouté à ta collection !' : 'Modifications enregistrées.')
     refresh()
   }
 
   async function handleDelete(item) {
     await api.deleteItem(item.id)
     setEditing(null)
+    setToast('Pièce supprimée.')
     refresh()
   }
 
   async function handleToggleStatus(item) {
-    await api.updateItem(item.id, { status: item.status === 'possede' ? 'recherche' : 'possede' })
+    const next = item.status === 'possede' ? 'recherche' : 'possede'
+    await api.updateItem(item.id, { status: next })
+    setToast(next === 'possede' ? 'Une nouvelle pièce dans ta collection !' : 'Ajouté à tes souhaits.')
     refresh()
   }
 
@@ -58,9 +67,15 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <h1 className="logo">Kapsy</h1>
-        <button className="btn btn-primary" onClick={() => setEditing({})}>+ Ajouter</button>
+        <h1 className="logo">
+          <img src="/logo.png" alt="Kapsy" width="329" height="120" />
+        </h1>
+        <button className="btn btn-primary" onClick={() => setEditing({})}>
+          <Plus size={18} strokeWidth={2.5} aria-hidden="true" /> Ajouter une pièce
+        </button>
       </header>
+
+      <p className="tagline">Ta passion en un seul endroit.</p>
 
       <Stats stats={stats} />
 
@@ -68,7 +83,7 @@ export default function App() {
         {TABS.map(([value, label]) => (
           <button
             key={value}
-            className={`tab${category === value ? ' tab-active' : ''}`}
+            className="filter"
             aria-pressed={category === value}
             onClick={() => setCategory(value)}
           >
@@ -78,35 +93,47 @@ export default function App() {
       </nav>
 
       <div className="filters">
-        <input
-          type="search"
-          placeholder="Rechercher un nom, une série, un numéro…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          aria-label="Rechercher"
-        />
-        <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Statut">
+        <label className="search">
+          <Search size={18} aria-hidden="true" />
+          <span className="sr-only">Rechercher</span>
+          <input
+            type="search"
+            placeholder="Nom, série, numéro…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </label>
+        <label className="sr-only" htmlFor="status-filter">Statut</label>
+        <select id="status-filter" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">Tous les statuts</option>
-          <option value="possede">Dans ma collection</option>
-          <option value="recherche">Recherchés</option>
+          <option value="possede">Possédés</option>
+          <option value="recherche">Souhaités</option>
         </select>
       </div>
 
       {error && <p className="banner-error" role="alert">{error}</p>}
 
-      {!loading && items.length === 0 ? (
+      {loading ? (
+        <section className="grid" aria-busy="true" aria-label="Chargement">
+          {Array.from({ length: 4 }, (_, i) => <div key={i} className="card skeleton" />)}
+        </section>
+      ) : items.length === 0 ? (
         <div className="empty">
           {filtered ? (
-            <p>Aucun objet ne correspond à ces filtres.</p>
+            <p>Aucune pièce ne correspond à ta recherche.</p>
           ) : (
             <>
-              <p>Votre collection est vide pour l’instant.</p>
-              <button className="btn btn-primary" onClick={() => setEditing({})}>Ajouter mon premier objet</button>
+              <img src="/symbole.png" alt="" />
+              <h2>Chaque collection commence par une pièce.</h2>
+              <p>Commence par ajouter ta première pièce.</p>
+              <button className="btn btn-primary" onClick={() => setEditing({})}>
+                <Plus size={18} strokeWidth={2.5} aria-hidden="true" /> Ajouter une pièce
+              </button>
             </>
           )}
         </div>
       ) : (
-        <section className="grid">
+        <section className="grid" aria-label="Pièces">
           {items.map((item) => (
             <ItemCard key={item.id} item={item} onEdit={setEditing} onToggleStatus={handleToggleStatus} />
           ))}
@@ -122,6 +149,8 @@ export default function App() {
           onClose={() => setEditing(null)}
         />
       )}
+
+      <Toast message={toast} onDone={clearToast} />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { CircleAlert, Trash2, X } from 'lucide-react'
 import { CATEGORY_LABELS, CONDITION_LABELS, STATUS_LABELS } from '../labels'
 
 const EMPTY = {
@@ -29,13 +30,13 @@ export default function ItemForm({ item, defaultCategory, onSave, onDelete, onCl
       const { id: _id, createdAt: _c, updatedAt: _u, ...data } = form
       await onSave({ ...data, quantity: Number(data.quantity) || 1 })
     } catch (err) {
-      setError(err.message)
+      setError(`Impossible d’enregistrer cette pièce. ${err.message}`)
       setSaving(false)
     }
   }
 
   async function handleDelete() {
-    if (!confirm(`Supprimer « ${item.name} » ?`)) return
+    if (!confirm(`Supprimer « ${item.name} » de ta collection ? Cette action est définitive.`)) return
     try {
       await onDelete(item)
     } catch (err) {
@@ -47,14 +48,14 @@ export default function ItemForm({ item, defaultCategory, onSave, onDelete, onCl
     <dialog ref={dialogRef} className="modal" onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <header className="modal-header">
-          <h2>{item ? 'Modifier l’objet' : 'Ajouter un objet'}</h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Fermer">✕</button>
+          <h2>{item ? 'Modifier la pièce' : 'Ajouter une pièce'}</h2>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Fermer"><X size={20} aria-hidden="true" /></button>
         </header>
 
         <div className="form-grid">
           <label className="span-2">
             Nom *
-            <input value={form.name} onChange={set('name')} required autoFocus placeholder="ex. Mickey Mouse" />
+            <input value={form.name} onChange={set('name')} required autoFocus placeholder="ex. Robot rouge" />
           </label>
           <label>
             Catégorie
@@ -70,7 +71,7 @@ export default function ItemForm({ item, defaultCategory, onSave, onDelete, onCl
           </label>
           <label>
             Série / licence
-            <input value={form.series} onChange={set('series')} placeholder="ex. Disney" />
+            <input value={form.series} onChange={set('series')} placeholder="ex. Série Espace" />
           </label>
           <label>
             Numéro
@@ -84,7 +85,7 @@ export default function ItemForm({ item, defaultCategory, onSave, onDelete, onCl
             </select>
           </label>
           <label>
-            Prix d'achat (€)
+            Prix d’achat (€)
             <input type="number" min="0" step="0.01" value={form.price} onChange={set('price')} />
           </label>
           <label>
@@ -101,14 +102,18 @@ export default function ItemForm({ item, defaultCategory, onSave, onDelete, onCl
           </label>
         </div>
 
-        {error && <p className="form-error" role="alert">{error}</p>}
+        {error && (
+          <p className="form-error" role="alert"><CircleAlert size={18} aria-hidden="true" /> {error}</p>
+        )}
 
         <footer className="modal-footer">
           {item && (
-            <button type="button" className="btn btn-danger" onClick={handleDelete}>Supprimer</button>
+            <button type="button" className="btn btn-danger" onClick={handleDelete}>
+              <Trash2 size={16} aria-hidden="true" /> Supprimer
+            </button>
           )}
           <span className="spacer" />
-          <button type="button" className="btn" onClick={onClose}>Annuler</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Annuler</button>
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? 'Enregistrement…' : 'Enregistrer'}
           </button>

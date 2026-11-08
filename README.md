@@ -1,13 +1,21 @@
 # Kapsy
 
-Kapsy sert à gérer ses collections de figurines et d'objets à collectionner : PEZ, Pop, Mighty Mugs, et tout le reste.
+**L’app des collectionneurs.** Ta passion en un seul endroit.
+
+Kapsy sert à gérer ses collections de pièces : PEZ, Pop, Mighty Muggs, et tout le reste.
 
 ## Fonctionnalités
 
 - Ajouter, modifier et supprimer des objets : nom, catégorie, série/licence, numéro, état, prix d'achat, quantité, image (URL) et notes
-- Marquer un objet comme possédé ou recherché, pour tenir une liste de souhaits
+- Marquer un objet comme possédé ou souhaité, pour tenir une liste de souhaits
 - Filtrer par catégorie et par statut, et rechercher par nom, série, numéro ou notes
 - Voir des statistiques : nombre d'objets, valeur d'achat totale, répartition par catégorie
+
+## Identité visuelle
+
+- Design system : [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) (tokens `--ks-*` repris dans `client/src/index.css`)
+- Logos sources : `brand/` (PNG du moodboard ; les SVG définitifs restent à produire)
+- Icônes : [Lucide](https://lucide.dev) via `lucide-react`
 
 ## Stack
 
