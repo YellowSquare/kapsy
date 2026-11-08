@@ -30,4 +30,6 @@ export const api = {
   createItem: (data) => request('/items', json('POST', data)),
   updateItem: (id, data) => request(`/items/${id}`, json('PUT', data)),
   deleteItem: (id) => request(`/items/${id}`, { method: 'DELETE' }),
+  findSimilar: (signature, excludeId) => request('/items/similar', json('POST', { signature, excludeId })),
+  uploadPhoto: (blob) => request('/uploads', { method: 'POST', headers: { 'Content-Type': blob.type }, body: blob }),
 }

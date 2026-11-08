@@ -3,3 +3,5 @@ dist
 .env
 .DS_Store
 server/data
+tools/calibration/imgs
+tools/calibration/meta.json

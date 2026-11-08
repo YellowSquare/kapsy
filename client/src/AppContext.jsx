@@ -45,6 +45,18 @@ export function AppProvider({ children }) {
     changed()
   }
 
+  // La photo correspond à une pièce existante : +1 exemplaire, ou souhait trouvé.
+  async function markSame(match, image) {
+    const found = match.status === 'recherche'
+    const patch = found ? { status: 'possede', ...image } : { quantity: (match.quantity ?? 1) + 1, ...image }
+    await api.updateItem(match.id, patch)
+    setItemDraft(null)
+    setToast(found
+      ? `Une nouvelle pièce dans ta collection : ${match.name} !`
+      : `${match.name} est maintenant en double (×${patch.quantity}).`)
+    changed()
+  }
+
   async function deleteItem(item) {
     await api.deleteItem(item.id)
     setItemDraft(null)
@@ -85,6 +97,7 @@ export function AppProvider({ children }) {
           collections={collections ?? []}
           defaultCollectionId={itemDraft.collectionId}
           onSave={saveItem}
+          onSame={markSame}
           onDelete={deleteItem}
           onClose={() => setItemDraft(null)}
         />

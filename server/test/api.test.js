@@ -83,3 +83,52 @@ test('migration des catégories v1 vers des collections', async () => {
   assert.equal(saved.version, 2);
   assert.ok(saved.items.every((i) => i.collectionId && !i.category));
 });
+
+test('photos : envoi, recherche de doublons, nettoyage', async () => {
+  const { computeSignature, SIGNATURE_SIZE: S } = await import('../../client/src/lib/signature.js');
+  const plain = (rgb) => {
+    const px = new Uint8ClampedArray(S * S * 4);
+    for (let p = 0; p < S * S; p++) {
+      const x = p % S, y = (p / S) | 0;
+      const inObj = Math.abs(x - S / 2) < S * 0.15 && Math.abs(y - S / 2) < S * 0.3;
+      const c = inObj ? rgb : [240, 232, 220];
+      px.set([...c, 255], p * 4);
+    }
+    return computeSignature(px);
+  };
+
+  // Format refusé : faux JPEG
+  const bad = await fetch(`${base}/uploads`, { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: Buffer.from('pas une image') });
+  assert.equal(bad.status, 400);
+
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1, 0xff, 0xd9]);
+  const up = await fetch(`${base}/uploads`, { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: jpeg });
+  assert.equal(up.status, 201);
+  const { url } = await up.json();
+  assert.match(url, /^\/uploads\/[0-9a-f-]{36}\.jpg$/);
+  const served = await fetch(base.replace('/api', '') + url);
+  assert.equal(served.status, 200);
+  assert.equal(served.headers.get('content-type'), 'image/jpeg');
+
+  const c = await call('POST', '/collections', { name: 'Photos' });
+  const redSig = plain([214, 40, 40]);
+  const item = await call('POST', '/items', { name: 'Rouge', collectionId: c.body.id, imageUrl: url, imageSig: redSig });
+  assert.equal(item.status, 201);
+
+  const same = await call('POST', '/items/similar', { signature: plain([200, 36, 36]) });
+  assert.equal(same.body.length, 1);
+  assert.equal(same.body[0].item.id, item.body.id);
+  assert.equal(same.body[0].level, 'strong');
+
+  const other = await call('POST', '/items/similar', { signature: plain([40, 90, 200]) });
+  assert.equal(other.body.length, 0);
+
+  const excluded = await call('POST', '/items/similar', { signature: redSig, excludeId: item.body.id });
+  assert.equal(excluded.body.length, 0);
+
+  assert.equal((await call('POST', '/items/similar', { signature: { v: 2 } })).status, 400);
+
+  // La photo est supprimée du disque avec la pièce.
+  await call('DELETE', `/items/${item.body.id}`);
+  assert.equal((await fetch(base.replace('/api', '') + url)).status, 404);
+});

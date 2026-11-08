@@ -1,7 +1,9 @@
-import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, rename, mkdir, unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { isValidSignature, similarity, MATCH_POSSIBLE, MATCH_STRONG } from '../../client/src/lib/signature.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_FILE = path.join(__dirname, '..', 'data', 'kapsy.json');
@@ -50,7 +52,16 @@ export function migrate(db) {
   return db;
 }
 
+const IMAGE_TYPES = {
+  'image/jpeg': { ext: 'jpg', magic: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+  'image/png': { ext: 'png', magic: (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
+  'image/webp': { ext: 'webp', magic: (b) => b.subarray(0, 4).toString() === 'RIFF' && b.subarray(8, 12).toString() === 'WEBP' },
+};
+export const UPLOAD_TYPES = Object.keys(IMAGE_TYPES);
+const UPLOAD_URL = /^\/uploads\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
+
 export function createStore(file = process.env.KAPSY_DATA_FILE || DEFAULT_FILE) {
+  const uploadsDir = path.join(path.dirname(file), 'uploads');
   let cache = null;
   let writing = Promise.resolve();
 
@@ -128,7 +139,15 @@ export function createStore(file = process.env.KAPSY_DATA_FILE || DEFAULT_FILE) 
     for (const key of ['series', 'number', 'year', 'notes', 'imageUrl']) {
       if (!partial || key in input) out[key] = str(input[key] == null ? '' : String(input[key]));
     }
-    if (out.imageUrl && !/^https?:\/\//i.test(out.imageUrl)) errors.push('L’image doit être une adresse http(s).');
+    if (out.imageUrl && !/^https?:\/\//i.test(out.imageUrl) && !UPLOAD_URL.test(out.imageUrl)) {
+      errors.push('L’image doit être une adresse http(s) ou une photo envoyée.');
+    }
+    if (!partial || 'imageSig' in input) {
+      out.imageSig = input.imageSig ?? null;
+      if (out.imageSig !== null && !isValidSignature(out.imageSig)) errors.push('Empreinte de photo invalide.');
+    }
+    // Une nouvelle image sans empreinte invalide l'ancienne empreinte.
+    if (partial && 'imageUrl' in input && !('imageSig' in input)) out.imageSig = null;
     if (!partial || 'price' in input) {
       const p = input.price;
       if (p === '' || p === null || p === undefined) out.price = null;
@@ -158,6 +177,15 @@ export function createStore(file = process.env.KAPSY_DATA_FILE || DEFAULT_FILE) 
         .slice(0, 4)
         .map((i) => i.imageUrl),
     };
+  }
+
+  // Supprime les photos envoyées qui ne servent plus à aucune pièce.
+  async function removeUnusedUploads(urls) {
+    const { items } = await load();
+    for (const url of new Set(urls)) {
+      if (!url || !UPLOAD_URL.test(url) || items.some((i) => i.imageUrl === url)) continue;
+      await unlink(path.join(uploadsDir, path.basename(url))).catch(() => {});
+    }
   }
 
   const compare = {
@@ -205,8 +233,10 @@ export function createStore(file = process.env.KAPSY_DATA_FILE || DEFAULT_FILE) 
       const idx = db.collections.findIndex((x) => x.id === id);
       if (idx === -1) return false;
       db.collections.splice(idx, 1);
+      const removed = db.items.filter((i) => i.collectionId === id);
       db.items = db.items.filter((i) => i.collectionId !== id);
       await persist();
+      await removeUnusedUploads(removed.map((i) => i.imageUrl));
       return true;
     },
 
@@ -241,8 +271,10 @@ export function createStore(file = process.env.KAPSY_DATA_FILE || DEFAULT_FILE) 
       const db = await load();
       const item = db.items.find((i) => i.id === id);
       if (!item) return null;
+      const previousImage = item.imageUrl;
       Object.assign(item, data, { updatedAt: now() });
       await persist();
+      if (previousImage !== item.imageUrl) await removeUnusedUploads([previousImage]);
       return item;
     },
 
@@ -250,10 +282,37 @@ export function createStore(file = process.env.KAPSY_DATA_FILE || DEFAULT_FILE) 
       const db = await load();
       const idx = db.items.findIndex((i) => i.id === id);
       if (idx === -1) return false;
-      db.items.splice(idx, 1);
+      const [removed] = db.items.splice(idx, 1);
       await persist();
+      await removeUnusedUploads([removed.imageUrl]);
       return true;
     },
+
+    // Pièces dont la photo ressemble à l'empreinte donnée (doublons probables).
+    async findSimilar(signature, { excludeId, limit = 3 } = {}) {
+      if (!isValidSignature(signature)) throw new ValidationError(['Empreinte de photo invalide.']);
+      const { items } = await load();
+      return items
+        .filter((i) => i.id !== excludeId && i.imageSig && isValidSignature(i.imageSig))
+        .map((i) => ({ item: i, score: Math.round(similarity(signature, i.imageSig) * 1000) / 1000 }))
+        .filter((m) => m.score >= MATCH_POSSIBLE)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map((m) => ({ ...m, level: m.score >= MATCH_STRONG ? 'strong' : 'possible' }));
+    },
+
+    async saveUpload(buffer, type) {
+      const spec = IMAGE_TYPES[type];
+      if (!spec || !buffer?.length || !spec.magic(buffer)) {
+        throw new ValidationError(['Format d’image non pris en charge (JPEG, PNG ou WebP).']);
+      }
+      await mkdir(uploadsDir, { recursive: true });
+      const name = `${randomUUID()}.${spec.ext}`;
+      await writeFile(path.join(uploadsDir, name), buffer);
+      return { url: `/uploads/${name}` };
+    },
+
+    uploadsDir,
 
     async stats() {
       const { collections, items } = await load();

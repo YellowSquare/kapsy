@@ -353,6 +353,51 @@ input::placeholder, textarea::placeholder { color: var(--ks-text-secondary); opa
 }
 .form-error { margin: var(--ks-space-4) 0 0; }
 
+/* Photo et doublons */
+.photo-field { display: flex; gap: var(--ks-space-4); align-items: center; margin-bottom: var(--ks-space-5); }
+.photo-preview {
+  position: relative; flex-shrink: 0; width: 132px; aspect-ratio: 1; overflow: hidden;
+  display: grid; place-items: center; border-radius: var(--ks-radius-lg);
+  background: var(--ks-bg-subtle); border: 1px solid var(--ks-border); color: var(--ks-text-secondary);
+}
+.photo-empty { border-style: dashed; border-width: 2px; }
+.photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+.photo-busy {
+  position: absolute; inset: auto 0 0; padding: var(--ks-space-2); text-align: center;
+  background: rgb(15 59 70 / 85%); color: var(--ks-text-inverse); font-size: var(--ks-font-size-xs); font-weight: 600;
+}
+.photo-actions { display: flex; flex-wrap: wrap; gap: var(--ks-space-2); align-items: center; }
+.photo-actions .help { flex-basis: 100%; margin: 0; }
+
+.dup-panel {
+  margin: 0 0 var(--ks-space-5); padding: var(--ks-space-4);
+  border: 1px solid var(--ks-color-mustard); border-radius: var(--ks-radius-lg);
+  background: color-mix(in srgb, var(--ks-color-mustard) 12%, white);
+  animation: toast-in var(--ks-duration-normal) var(--ks-ease);
+}
+.dup-panel h3 { margin: 0; font-size: 1.25rem; }
+.dup-hint { margin: var(--ks-space-1) 0 var(--ks-space-3); font-size: var(--ks-font-size-sm); color: var(--ks-text-secondary); }
+.dup-list { list-style: none; margin: 0 0 var(--ks-space-3); padding: 0; display: flex; flex-direction: column; gap: var(--ks-space-2); }
+.dup-item {
+  display: flex; align-items: center; gap: var(--ks-space-3); padding: var(--ks-space-2);
+  background: var(--ks-bg-surface); border: 1px solid var(--ks-border); border-radius: var(--ks-radius-md);
+}
+.dup-item img { width: 64px; height: 64px; object-fit: cover; border-radius: var(--ks-radius-sm); flex-shrink: 0; }
+.dup-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dup-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dup-meta { font-size: var(--ks-font-size-sm); color: var(--ks-text-secondary); }
+.dup-badges { display: flex; flex-wrap: wrap; gap: var(--ks-space-1); }
+.badge-match { background: var(--ks-color-mist); color: var(--ks-color-deep); }
+.badge-match-strong { background: var(--ks-color-deep); color: var(--ks-text-inverse); }
+.dup-item .btn { min-height: 44px; flex-shrink: 0; }
+.dup-none {
+  display: flex; align-items: center; gap: var(--ks-space-2); margin: calc(-1 * var(--ks-space-2)) 0 var(--ks-space-5);
+  font-size: var(--ks-font-size-sm); color: var(--ks-success); font-weight: 600;
+}
+.url-field summary { cursor: pointer; font-size: var(--ks-font-size-sm); font-weight: 600; color: var(--ks-link); min-height: 32px; display: flex; align-items: center; }
+.url-field label { display: flex; margin-top: var(--ks-space-2); }
+.url-field input { flex: 1; }
+
 /* Toast */
 .toast-region { position: fixed; left: 0; right: 0; bottom: var(--ks-space-6); display: flex; justify-content: center; pointer-events: none; z-index: 20; padding: 0 var(--ks-space-4); }
 .toast {
@@ -484,6 +529,11 @@ input::placeholder, textarea::placeholder { color: var(--ks-text-secondary); opa
   .span-2 { grid-column: auto; }
   .modal-footer { flex-wrap: wrap; }
   .modal-footer .btn-primary { flex: 1; }
+  .photo-field { flex-direction: column; align-items: stretch; }
+  .photo-preview { width: 100%; aspect-ratio: 4 / 3; }
+  .photo-actions .btn { flex: 1; }
+  .dup-item { flex-wrap: wrap; }
+  .dup-item .btn { flex-basis: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

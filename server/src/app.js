@@ -2,14 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ValidationError } from './store.js';
+import { ValidationError, UPLOAD_TYPES } from './store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function createApp(store) {
   const app = express();
   app.use(cors());
-  app.use(express.json());
+  app.use(express.json({ limit: '100kb' }));
 
   const notFound = (res, what) => res.status(404).json({ error: `${what} introuvable.` });
 
@@ -38,6 +38,10 @@ export function createApp(store) {
     const { collectionId, status, q, sort, limit } = req.query;
     res.json(await store.listItems({ collectionId, status, q, sort, limit }));
   });
+  app.post('/api/items/similar', async (req, res) => {
+    const { signature, excludeId } = req.body ?? {};
+    res.json(await store.findSimilar(signature, { excludeId }));
+  });
   app.get('/api/items/:id', async (req, res) => {
     const item = await store.getItem(req.params.id);
     item ? res.json(item) : notFound(res, 'Pièce');
@@ -53,6 +57,16 @@ export function createApp(store) {
     (await store.deleteItem(req.params.id)) ? res.status(204).end() : notFound(res, 'Pièce');
   });
 
+  // Photos : corps brut de l'image, 8 Mo maximum (le client les réduit avant l'envoi).
+  app.post('/api/uploads', express.raw({ type: UPLOAD_TYPES, limit: '8mb' }), async (req, res) => {
+    const type = req.headers['content-type']?.split(';')[0].trim();
+    res.status(201).json(await store.saveUpload(Buffer.isBuffer(req.body) ? req.body : null, type));
+  });
+  app.use('/uploads', express.static(store.uploadsDir, {
+    immutable: true, maxAge: '1y', fallthrough: false,
+    setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
+  }));
+
   app.use('/api', (req, res) => res.status(404).json({ error: 'Route inconnue.' }));
 
   // En production, le serveur sert aussi le frontend compilé.
@@ -65,6 +79,8 @@ export function createApp(store) {
   app.use((err, req, res, next) => {
     if (err instanceof ValidationError) return res.status(400).json({ errors: err.errors });
     if (err.type === 'entity.parse.failed') return res.status(400).json({ errors: ['JSON invalide.'] });
+    if (err.type === 'entity.too.large') return res.status(413).json({ errors: ['Fichier trop volumineux.'] });
+    if (err.status === 404) return res.status(404).json({ error: 'Fichier introuvable.' });
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });
   });
