@@ -1,9 +1,9 @@
 // §8.5 : affichée uniquement si le total visé est connu, avec la valeur en texte.
-export default function ProgressBar({ owned, target }) {
+export default function ProgressBar({ owned, target, color }) {
   if (!target) return null
   const pct = Math.min(100, Math.round((owned / target) * 100))
   return (
-    <div className="progress">
+    <div className={`progress${color ? ` col-${color}` : ''}`}>
       <div
         className="progress-track"
         role="progressbar"

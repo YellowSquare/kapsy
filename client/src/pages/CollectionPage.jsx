@@ -68,7 +68,7 @@ export default function CollectionPage() {
               <li><Copy size={14} aria-hidden="true" /> <b>{collection.doubles}</b> en double</li>
             )}
           </ul>
-          <ProgressBar owned={collection.owned} target={collection.target} />
+          <ProgressBar owned={collection.owned} target={collection.target} color={collection.color} />
           <div className="col-actions">
             <button className="btn btn-primary" onClick={() => addPiece(collection.id)}>
               <Plus size={18} strokeWidth={2.5} aria-hidden="true" /> Ajouter une pièce

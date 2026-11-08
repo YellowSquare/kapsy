@@ -20,7 +20,7 @@ export default function App() {
       <header className="topbar">
         <div className="topbar-inner">
           <Link to="/" className="logo" aria-label="Kapsy — accueil">
-            <img src="/logo.png" alt="Kapsy" width="329" height="120" />
+            <img src="/logo-inverse.png" alt="Kapsy" width="323" height="120" />
           </Link>
           <nav className="nav-desktop" aria-label="Navigation principale">
             {NAV.map(({ to, label, icon: Icon, end }) => (
@@ -29,7 +29,7 @@ export default function App() {
               </NavLink>
             ))}
           </nav>
-          <button className="btn btn-primary nav-add" onClick={() => addPiece()}>
+          <button className="btn btn-accent nav-add" onClick={() => addPiece()}>
             <Plus size={18} strokeWidth={2.5} aria-hidden="true" /> Ajouter une pièce
           </button>
         </div>

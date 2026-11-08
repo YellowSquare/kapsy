@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { FolderPlus, Plus } from 'lucide-react'
+import Rays from '../components/Rays'
 import { api } from '../api'
 import { useApp } from '../AppContext'
 import { useItems } from '../useItems'
@@ -23,7 +24,7 @@ export default function Home() {
     return (
       <section className="hero">
         <img src="/symbole.png" alt="" />
-        <h1>Ta passion en un seul endroit.</h1>
+        <h1>Ta passion en un seul endroit<Rays className="hero-rays" /></h1>
         <p>Organise, suis et fais grandir tes collections.</p>
         <button className="btn btn-primary" onClick={() => openCollectionForm({})}>
           <FolderPlus size={18} aria-hidden="true" /> Créer ma collection
@@ -34,12 +35,14 @@ export default function Home() {
 
   return (
     <>
-      <div className="page-head">
-        <div>
-          <h1>{greeting()} !</h1>
-          <p className="lead">Voici où en sont tes collections.</p>
-        </div>
-      </div>
+      <section className="banner">
+        <p className="banner-hello">{greeting()} !</p>
+        <h1>
+          Organise, suis et fais grandir tes{' '}
+          <em>collections&nbsp;!<Rays className="banner-rays" /></em>
+        </h1>
+        <div className="banner-cards" aria-hidden="true"><span /><span /><span /></div>
+      </section>
 
       {stats && (
         <section className="stats" aria-label="Résumé">
@@ -53,16 +56,15 @@ export default function Home() {
       <section className="section">
         <div className="section-head">
           <h2>Mes collections</h2>
-          <Link to="/collections" className="btn btn-tertiary">Tout voir</Link>
+          <div className="section-actions">
+            <Link to="/collections" className="btn btn-tertiary">Tout voir</Link>
+            <button className="fab" onClick={() => openCollectionForm({})} aria-label="Nouvelle collection" title="Nouvelle collection">
+              <Plus size={22} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+          </div>
         </div>
         <ul className="col-grid">
           {(collections ?? []).slice(0, 6).map((c) => <li key={c.id}><CollectionCard collection={c} /></li>)}
-          <li>
-            <button className="col-new" onClick={() => openCollectionForm({})}>
-              <FolderPlus size={28} aria-hidden="true" />
-              Nouvelle collection
-            </button>
-          </li>
         </ul>
       </section>
 

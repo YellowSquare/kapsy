@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { Heart } from 'lucide-react'
+import { ChevronRight, Heart } from 'lucide-react'
 import ProgressBar from './ProgressBar'
 import { pieces } from '../labels'
 
@@ -37,8 +37,9 @@ export default function CollectionCard({ collection }) {
               <span className="col-wish"><Heart size={14} aria-hidden="true" /> {collection.wishlist} souhait{collection.wishlist > 1 ? 's' : ''}</span>
             )}
           </p>
-          <ProgressBar owned={collection.owned} target={collection.target} />
+          <ProgressBar owned={collection.owned} target={collection.target} color={collection.color} />
         </div>
+        <ChevronRight className="col-chevron" size={20} aria-hidden="true" />
       </Link>
     </article>
   )
